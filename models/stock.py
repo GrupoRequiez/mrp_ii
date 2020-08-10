@@ -1,27 +1,8 @@
-# -*- coding: utf-8 -*-
-###############################################################################
-#
-#    Odoo, Open Source Management Solution
-#    Copyright (C) 2017 Humanytek (<www.humanytek.com>).
-#    Rubén Bravo <rubenred18@gmail.com>
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+# Copyright 2018 Vauxoo (https://www.vauxoo.com) <info@vauxoo.com>
+# License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
-from odoo import api, fields, models
 import logging
+from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 
@@ -30,14 +11,16 @@ class StockMove(models.Model):
     _inherit = 'stock.move'
 
     compromise_qty_move = fields.Float('Compromise',
-                        compute='_compute_compromise_qty_move', readonly=True)
+                                       compute='_compute_compromise_qty_move',
+                                       readonly=True, help="Amount committed")
 
-    @api.one
+    @api.multi
     def _compute_compromise_qty_move(self):
-        ProductCompromise = self.env['product.compromise']
-        product_compromises = ProductCompromise.search([
-                            ('stock_move_in_id.id', '=', self.id),
-                            ('state', '=', 'assigned')])
-        self.compromise_qty_move = sum([product_compromise.qty_compromise
-                                for product_compromise in
-                                product_compromises])
+        product_compromise_obj = self.env['product.compromise']
+        for record in self:
+            commited_products = product_compromise_obj.search([
+                ('stock_move_in_id.id', '=', record.id),
+                ('state', '=', 'assigned')])
+            record.compromise_qty_move = sum([prod_compromise.qty_compromise
+                                              for prod_compromise in
+                                              commited_products])
